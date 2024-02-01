@@ -71,7 +71,7 @@ REPLICA_TYPE_LAUNCHER = "Launcher"
 
 # Constants for Train API.
 STORAGE_INITIALIZER = "storage-initializer"
-STORAGE_INITIALIZER_IMAGE = "docker.io/kubeflow/storage-initializer"
+STORAGE_INITIALIZER_IMAGE = "dev/kubeflow/storage-initializer:0.1"
 
 STORAGE_INITIALIZER_VOLUME_MOUNT = models.V1VolumeMount(
     name=STORAGE_INITIALIZER,

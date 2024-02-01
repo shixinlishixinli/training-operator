@@ -38,7 +38,7 @@ class MinioDataset(datasetProvider):
         minio_client = Minio(self.minio_endpoint, self.minio_accesskey, self.minio_secretkey)
         object_name = "git-base/pytorch_model.bin"
         #file_path = "/home/jovyan/model/pytorch_model.bin"
-        file_path = "./pytorch_model.bin"
+        file_path = "./pytorch_model_minio.bin"
         with open(file_path, "wb") as file_data:
             file_data.write(minio_client.get_object("my-bucket", object_name).read())
 
