@@ -245,6 +245,170 @@ class TrainingClient(object):
 
         self.create_job(job, namespace=namespace)
 
+    ## The function is copied from tran(), and it is used for IPEX fine-tune Med-GIT model
+    def llm_train(
+        self,
+        name: str,
+        image: str,
+        namespace: Optional[str] = None,
+        num_workers: int = 1,
+        num_procs_per_worker: int = 1,
+        storage_config: Dict[str, Optional[str]] = {
+            "size": "10Gi",
+            "storage_class": None,
+        },
+        model_provider_parameters=None,
+        dataset_provider_parameters=None,
+        train_parameters=None,
+        resources_per_worker: Union[dict, client.V1ResourceRequirements, None] = None,
+    ):
+        """
+        Higher level train api
+        model_provider_parameters: It can be of type HuggingFaceModelParams
+        dataset_provider_parameters: It can be of type HfDatasetParams or S3DatasetParams
+        train_parameters: It can be of type HuggingFaceTrainParams
+        """
+        from kubeflow.storage_initializer.minio import (
+            MinioDatasetPrams,
+            MinioModelParams,
+            LLMTrainParams,
+        )
+
+        if (
+            not name
+            or not model_provider_parameters
+            or not dataset_provider_parameters
+            or not train_parameters
+        ):
+            raise ValueError("One of the required parameters is None")
+
+        namespace = namespace or self.namespace
+
+        """
+        # TODO (andreyvelich): PVC Creation should be part of Training Operator Controller.
+        # Ref issue: https://github.com/kubeflow/training-operator/issues/1971
+        try:
+            self.core_api.create_namespaced_persistent_volume_claim(
+                namespace=namespace,
+                body=utils.get_pvc_spec(
+                    pvc_name=constants.STORAGE_INITIALIZER,
+                    namespace=namespace,
+                    storage_config=storage_config,
+                ),
+            )
+        except Exception as e:
+            pvc_list = self.core_api.list_namespaced_persistent_volume_claim(namespace)
+            # Check if the PVC with the specified name exists
+            for pvc in pvc_list.items:
+                if pvc.metadata.name == constants.STORAGE_INITIALIZER:
+                    print(
+                        f"PVC '{constants.STORAGE_INITIALIZER}' already exists in namespace "
+                        f"{namespace}."
+                    )
+                    break
+            else:
+                raise RuntimeError("failed to create pvc")
+        """
+
+        if isinstance(model_provider_parameters, MinioModelParams):
+            mp = "md"
+        else:
+            raise ValueError(
+                f"Invalid model provider parameters {model_provider_parameters}"
+            )
+
+        if isinstance(dataset_provider_parameters, MinioDatasetPrams):
+            dp = "minio"
+        else:
+            raise ValueError(
+                f"Invalid dataset provider parameters {dataset_provider_parameters}"
+            )
+
+        # create init container spec
+        init_container_spec = utils.get_container_spec(
+            name=constants.STORAGE_INITIALIZER,
+            base_image=constants.STORAGE_INITIALIZER_IMAGE,
+            args=[
+                "--model_provider",
+                mp,
+                "--model_provider_parameters",
+                json.dumps(model_provider_parameters.__dict__, cls=utils.SetEncoder),
+                "--dataset_provider",
+                dp,
+                "--dataset_provider_parameters",
+                json.dumps(dataset_provider_parameters.__dict__),
+            ],
+            volume_mounts=[constants.STORAGE_INITIALIZER_VOLUME_MOUNT],
+        )
+
+        base_image=image
+        if base_image is None:
+            base_image=constants.TRAINER_TRANSFORMER_IMAGE
+        print(f"base image:: {base_image}")
+
+        """
+        # create app container spec
+        container_spec = utils.get_container_spec(
+            name=constants.JOB_PARAMETERS[constants.PYTORCHJOB_KIND]["container"],
+            base_image=constants.TRAINER_TRANSFORMER_IMAGE,
+            args=[
+                "--model_uri",
+                model_provider_parameters.model_uri,
+                "--transformer_type",
+                model_provider_parameters.transformer_type.__name__,
+                "--model_dir",
+                VOLUME_PATH_MODEL,
+                "--dataset_dir",
+                VOLUME_PATH_DATASET,
+                "--dataset_name",
+                dataset_provider_parameters.repo_id,
+                "--lora_config",
+                json.dumps(train_parameters.lora_config.__dict__, cls=utils.SetEncoder),
+                "--training_parameters",
+                json.dumps(train_parameters.training_parameters.to_dict()),
+            ],
+            volume_mounts=[constants.STORAGE_INITIALIZER_VOLUME_MOUNT],
+            resources=resources_per_worker,
+        )
+        """
+        # create app container spec
+        container_spec = utils.get_container_spec(
+            name=constants.JOB_PARAMETERS[constants.PYTORCHJOB_KIND]["container"],
+            #base_image=constants.TRAINER_TRANSFORMER_IMAGE,
+            base_image=base_image,
+            args=[
+                "--dataset_dir",
+                VOLUME_PATH_DATASET,
+            ],
+            volume_mounts=[constants.STORAGE_INITIALIZER_VOLUME_MOUNT],
+            resources=resources_per_worker,
+        )
+
+        # create worker pod spec
+        worker_pod_template_spec = utils.get_pod_template_spec(
+            containers=[container_spec],
+            init_containers=[init_container_spec],
+            volumes=[constants.STORAGE_INITIALIZER_VOLUME],
+        )
+
+        # create master pod spec
+        master_pod_template_spec = utils.get_pod_template_spec(
+            containers=[container_spec],
+            init_containers=[init_container_spec],
+            volumes=[constants.STORAGE_INITIALIZER_VOLUME],
+        )
+
+        job = utils.get_pytorchjob_template(
+            name=name,
+            namespace=namespace,
+            master_pod_template_spec=master_pod_template_spec,
+            worker_pod_template_spec=worker_pod_template_spec,
+            num_workers=num_workers,
+            num_procs_per_worker=num_procs_per_worker,
+        )
+
+        self.create_job(job, namespace=namespace)
+
     def create_job(
         self,
         job: Optional[constants.JOB_MODELS_TYPE] = None,
