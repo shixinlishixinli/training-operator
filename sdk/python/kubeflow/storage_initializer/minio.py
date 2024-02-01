@@ -9,8 +9,8 @@ from minio.error import S3Error
 class MinioDatasetPrams:
     endpoint_url: str
     bucket_name: str
-    access_key: str = None
-    secret_key: str = None
+    access_key: str 
+    secret_key: str 
 
     def is_valid_url(self, url):
         try:
@@ -35,7 +35,6 @@ class MinioDataset(datasetProvider):
     def download_dataset(self):
         # Create Minio client
         # HACK: Mount volume for test
-        print("minio download_dataset")
         minio_client = Minio(self.minio_endpoint, self.minio_accesskey, self.minio_secretkey)
         object_name = "git-base/pytorch_model.bin"
         #file_path = "/home/jovyan/model/pytorch_model.bin"
@@ -65,3 +64,4 @@ class MinioModel(modelProvider):
     def download_model_and_tokenizer(self):
         # implementation for downloading the model
         print("downloading minio model")
+
