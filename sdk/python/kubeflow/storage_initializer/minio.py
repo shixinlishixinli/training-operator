@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from urllib.parse import urlparse
 from .abstract_model_provider import modelProvider
 from .abstract_dataset_provider import datasetProvider
+from minio import Minio
+from minio.error import S3Error
 
 @dataclass
 class MinioDatasetPrams:
@@ -30,11 +32,19 @@ class MinioDatasetPrams:
 class MinioDataset(datasetProvider):
     def load_config(self, serialised_args):
         print("minio dataset load_config")
-
     def download_dataset(self):
         # Create Minio client
         # HACK: Mount volume for test
         print("minio download_dataset")
+        minio_client = Minio(self.minio_endpoint, self.minio_accesskey, self.minio_secretkey)
+        object_name = "git-base/pytorch_model.bin"
+        #file_path = "/home/jovyan/model/pytorch_model.bin"
+        file_path = "./pytorch_model.bin"
+        with open(file_path, "wb") as file_data:
+            file_data.write(minio_client.get_object("my-bucket", object_name).read())
+
+        print("Object downloaded successfully")
+
 
 @dataclass
 class MinioModelParams:
@@ -55,7 +65,3 @@ class MinioModel(modelProvider):
     def download_model_and_tokenizer(self):
         # implementation for downloading the model
         print("downloading minio model")
-
-@dataclass
-class LLMTrainParams:
-    num_per_core: str
