@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from .abstract_model_provider import modelProvider
 from .abstract_dataset_provider import datasetProvider
 from minio import Minio
-from minio.error import S3Error
+#from minio.error import S3Error
 
 @dataclass
 class MinioDatasetPrams:
@@ -28,13 +28,16 @@ class MinioDatasetPrams:
         ):
             raise ValueError("bucket_name or endpoint_url or file_key is None")
         self.is_valid_url(self.endpoint_url)
+        print ('this is MinioDatasetPrams')
 
 class MinioDataset(datasetProvider):
     def load_config(self, serialised_args):
+        
         print("minio dataset load_config")
     def download_dataset(self):
         # Create Minio client
         # HACK: Mount volume for test
+        print ("this is miniodataset")
         minio_client = Minio(self.minio_endpoint, self.minio_accesskey, self.minio_secretkey)
         object_name = "git-base/pytorch_model.bin"
         #file_path = "/home/jovyan/model/pytorch_model.bin"
@@ -65,3 +68,6 @@ class MinioModel(modelProvider):
         # implementation for downloading the model
         print("downloading minio model")
 
+@dataclass
+class LLMTrainParams:
+    num_per_core: str
