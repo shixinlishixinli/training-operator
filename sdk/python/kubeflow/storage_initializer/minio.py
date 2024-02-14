@@ -34,13 +34,13 @@ class MinioDatasetPrams:
 
 class MinioDataset(datasetProvider):
     def load_config(self, serialised_args):
-        
+        self.config = MinioDatasetPrams(**json.loads(serialised_args))
         print("minio dataset load_config")
     def download_dataset(self):
         # Create Minio client
         # HACK: Mount volume for test
         print ("this is miniodataset")
-        minio_client = Minio(self.minio_endpoint, self.minio_accesskey, self.minio_secretkey)
+        minio_client = Minio(self.config.endpoint_url, self.config.access_key, self.config.secret_key)
         object_name = "git-base/pytorch_model.bin"
         #file_path = "/home/jovyan/model/pytorch_model.bin"
         file_path = "./pytorch_model_minio.bin"
@@ -50,6 +50,10 @@ class MinioDataset(datasetProvider):
         print("Object downloaded successfully")
 
 
+
+
+
+    
 @dataclass
 class MinioModelParams:
     model_uri: str
