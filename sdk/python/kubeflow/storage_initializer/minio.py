@@ -5,6 +5,8 @@ from .abstract_dataset_provider import datasetProvider
 from minio import Minio
 #from minio.error import S3Error
 
+print ('this is minio!!!')
+
 @dataclass
 class MinioDatasetPrams:
     endpoint_url: str
