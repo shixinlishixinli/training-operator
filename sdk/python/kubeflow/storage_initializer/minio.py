@@ -45,7 +45,7 @@ class MinioDataset(datasetProvider):
         #file_path = "/home/jovyan/model/pytorch_model.bin"
         file_path = "./pytorch_model_minio.bin"
         with open(file_path, "wb") as file_data:
-            file_data.write(minio_client.get_object("my-bucket", object_name).read())
+            file_data.write(minio_client.get_object(self.config.bucket_name, object_name).read())
 
         print("Object downloaded successfully")
 
