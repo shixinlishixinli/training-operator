@@ -4,8 +4,6 @@ from .s3 import S3
 from .minio import Minio
 from .minio import MinioModelParams
 
-
-
 def model_factory(model_provider, model_provider_parameters):
     match model_provider:
         case "hf":
@@ -13,7 +11,7 @@ def model_factory(model_provider, model_provider_parameters):
             hf.load_config(model_provider_parameters)
             hf.download_model_and_tokenizer()
         case "md":
-            hf = MinioModelParams()
+            hf = MinioModel()
             hf.load_config(model_provider_parameters)
             hf.download_model_and_tokenizer()
         case _:
