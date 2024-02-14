@@ -1,8 +1,8 @@
 import argparse
 from .hugging_face import HuggingFace, HuggingFaceDataset
 from .s3 import S3
-from .minio import Minio
-from .minio import MinioModelParams
+#from .minio import Minio
+from .minio import MinioDataset,MinioModel
 
 def model_factory(model_provider, model_provider_parameters):
     match model_provider:
@@ -29,7 +29,7 @@ def dataset_factory(dataset_provider, dataset_provider_parameters):
             hf.load_config(dataset_provider_parameters)
             hf.download_dataset()
         case "minio":
-            minio = Minio()
+            minio = MinioDataset()
             minio.load_config(dataset_provider_parameters)
             minio.download_dataset()
         case _:
